@@ -21,7 +21,6 @@ import de.randombyte.kosp.extensions.red
 import de.randombyte.kosp.extensions.toText
 import ninja.leaping.configurate.commented.CommentedConfigurationNode
 import ninja.leaping.configurate.loader.ConfigurationLoader
-import org.bstats.sponge.Metrics
 import org.slf4j.Logger
 import org.spongepowered.api.Sponge
 import org.spongepowered.api.block.BlockTypes
@@ -50,7 +49,6 @@ import org.spongepowered.api.event.item.inventory.UseItemStackEvent
 import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.plugin.Dependency
 import org.spongepowered.api.plugin.Plugin
-import org.spongepowered.api.plugin.PluginContainer
 import org.spongepowered.api.scheduler.Task
 import org.spongepowered.api.util.Color
 import java.util.*
@@ -61,15 +59,13 @@ import java.util.*
         dependencies = [(Dependency(id = "byte-items", optional = true))],
         authors = [(EntityParticles.AUTHOR)])
 class EntityParticles @Inject constructor(
-        private val logger: Logger,
-        @DefaultConfig(sharedRoot = true) configLoader: ConfigurationLoader<CommentedConfigurationNode>,
-        private val pluginContainer: PluginContainer,
-        val bStats: Metrics
+    private val logger: Logger,
+    @DefaultConfig(sharedRoot = true) configLoader: ConfigurationLoader<CommentedConfigurationNode>
 ) {
     internal companion object {
         const val ID = "entity-particles"
         const val NAME = "EntityParticles"
-        const val VERSION = "3.1.1"
+        const val VERSION = "@version@"
         const val AUTHOR = "RandomByte"
 
         const val ROOT_PERMISSION = ID
@@ -80,7 +76,7 @@ class EntityParticles @Inject constructor(
         const val PIXELMON_ID = "pixelmon"
         const val PIXELMON_PARTICLE_TAG_KEY = "$ID:particle"
 
-        private val _INSTANCE = lazy { Sponge.getPluginManager().getPlugin(EntityParticles.ID).get().instance.get() as EntityParticles }
+        private val _INSTANCE = lazy { Sponge.getPluginManager().getPlugin(ID).get().instance.get() as EntityParticles }
         val INSTANCE: EntityParticles get() = _INSTANCE.value
     }
 
@@ -92,7 +88,7 @@ class EntityParticles @Inject constructor(
     private lateinit var config: Config
 
     // <world, <entity, particleId>>
-    val trackedEntities: MutableMap<UUID, MutableMap<UUID, String>> = mutableMapOf()
+    private val trackedEntities: MutableMap<UUID, MutableMap<UUID, String>> = mutableMapOf()
 
     @Listener
     fun onPreInit(event: GamePreInitializationEvent) {
@@ -102,17 +98,17 @@ class EntityParticles @Inject constructor(
                 .dataClass(ParticleData::class.java)
                 .immutableClass(ParticleData.Immutable::class.java)
                 .builder(ParticleData.Builder())
-                .manipulatorId("particle")
-                .dataName("Particle")
-                .buildAndRegister(pluginContainer))
+                .id("particle")
+                .name("Particle")
+                .build())
 
         Sponge.getDataManager().registerLegacyManipulatorIds("de.randombyte.entityparticles.data.RemoverItemData", DataRegistration.builder()
                 .dataClass(RemoverItemData::class.java)
                 .immutableClass(RemoverItemData.Immutable::class.java)
                 .builder(RemoverItemData.Builder())
-                .manipulatorId("remover")
-                .dataName("Remover")
-                .buildAndRegister(pluginContainer))
+                .id("remover")
+                .name("Remover")
+                .build())
     }
 
     /**
@@ -204,7 +200,7 @@ class EntityParticles @Inject constructor(
 
     private fun onUseItem(event: Cancellable, player: Player) {
         val item = player.getItemInHand(HandTypes.MAIN_HAND).orNull() ?: return
-        if (item.get(EntityParticlesKeys.PARTICLE_ID).isPresent || item.get(EntityParticlesKeys.IS_REMOVER).isPresent) {
+        if (item.get(PARTICLE_ID).isPresent || item.get(IS_REMOVER).isPresent) {
             event.isCancelled = true
             player.sendMessage("You can't use a ParticleItem!".red())
         }
