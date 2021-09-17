@@ -1,13 +1,9 @@
 package de.randombyte.entityparticles.commands
 
-import de.randombyte.entityparticles.Config
+import de.randombyte.entityparticles.config.Config
 import de.randombyte.entityparticles.EntityParticles
 import de.randombyte.entityparticles.EntityParticles.Companion.PARTICLE_ID_ARG
 import de.randombyte.entityparticles.data.particleId
-import de.randombyte.kosp.extensions.getWorld
-import de.randombyte.kosp.extensions.orNull
-import de.randombyte.kosp.extensions.toText
-import de.randombyte.kosp.extensions.toUUID
 import org.spongepowered.api.Sponge
 import org.spongepowered.api.command.CommandException
 import org.spongepowered.api.command.CommandResult
@@ -15,6 +11,8 @@ import org.spongepowered.api.command.CommandSource
 import org.spongepowered.api.command.args.CommandContext
 import org.spongepowered.api.command.spec.CommandExecutor
 import org.spongepowered.api.data.key.Keys
+import org.spongepowered.api.text.Text
+import java.util.*
 
 internal class SetParticleCommand(
         private val getParticleConfig: (id: String) -> Config.Particle?
@@ -29,11 +27,9 @@ internal class SetParticleCommand(
         val entityUuidString = args.getOne<String>(ENTITY_UUID_ARG).get()
         val particleId = args.getOne<String>(PARTICLE_ID_ARG).get()
 
-        val world = worldUuidString.toUUID().getWorld()
-                ?: throw CommandException("World '$worldUuidString' is not available!".toText())
-        val entity = (world.getEntity(entityUuidString.toUUID()).orNull()
-                ?: throw CommandException("Entity '$entityUuidString' in world '$world' is not available!".toText()))
-
+        val world = Sponge.getServer().getWorld(UUID.fromString(worldUuidString)).orElse(null) ?: throw CommandException(Text.of("World '$worldUuidString' is not available!"))
+        val uuid = UUID.fromString(entityUuidString)
+        val entity = (world.getEntity(uuid).orElse(null) ?: throw CommandException(Text.of("Entity '$entityUuidString' in world '$world' is not available!")))
         if (particleId == "nothing") {
             entity.particleId = null
             entity.offer(Keys.GLOWING, false)
@@ -43,8 +39,7 @@ internal class SetParticleCommand(
             return CommandResult.success()
         }
 
-        val particleConfig = getParticleConfig(particleId)
-                ?: throw CommandException("Particle '$particleId' is not available!".toText())
+        val particleConfig = getParticleConfig(particleId) ?: throw CommandException(Text.of("Particle '$particleId' is not available!"))
 
         entity.particleId = particleId
 

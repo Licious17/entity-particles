@@ -27,7 +27,6 @@ plugins {
     java
     kotlin("jvm") version "1.5.30"
     id("net.kyori.blossom") version "1.3.0"
-    id("com.github.johnrengelman.shadow") version "7.0.0"
     id("org.spongepowered.gradle.plugin") version "2.0.0"
 }
 
@@ -63,7 +62,6 @@ val minecraft by configurations
 
 dependencies {
     minecraft("net.minecraftforge:forge:$forgeVersion")
-    shadow("com.github.randombyte-developer.kosp:kosp:v2.2.3")
     compileOnly("pixelmon:Pixelmon-1.12.2-$pixelmonVersion-server:$pixelmonVersion")
     compileOnly("org.spongepowered:spongeapi:$spongeVersion")
 }
@@ -95,27 +93,4 @@ sponge {
 blossom {
     replaceTokenIn("src/main/kotlin/de/randombyte/entityparticles/EntityParticles.kt")
     replaceToken("@version@", modVersion)
-}
-
-tasks {
-
-    shadowJar {
-        archiveBaseName.set(modName)
-        archiveClassifier.set("")
-        archiveVersion.set(modVersion)
-        configurations = listOf(project.configurations.shadow.get())
-
-        relocate ("de.randombyte.kosp", "de.randombyte.entityparticles.shaded.kosp")
-
-        exclude("module-info.class", "META-INF/maven/**", "META-INF/proguard/**", "META-INF/versions/**")
-        minimize()
-
-        finalizedBy("reobfJar")
-    }
-
-    artifacts {
-        archives(shadowJar)
-        shadow(shadowJar)
-    }
-
 }

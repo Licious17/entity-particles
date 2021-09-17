@@ -3,7 +3,6 @@ package de.randombyte.entityparticles.data
 import de.randombyte.entityparticles.data.EntityParticlesKeys.ACTIVE
 import de.randombyte.entityparticles.data.EntityParticlesKeys.PARTICLE_ID
 import de.randombyte.entityparticles.data.ParticleData.Immutable
-import de.randombyte.kosp.extensions.toOptional
 import org.spongepowered.api.Sponge
 import org.spongepowered.api.data.DataContainer
 import org.spongepowered.api.data.DataHolder
@@ -17,15 +16,16 @@ import org.spongepowered.api.data.persistence.InvalidDataException
 import org.spongepowered.api.data.value.mutable.Value
 import java.util.*
 
+@Suppress("UNSTABLE")
 class ParticleData internal constructor(
         var id: String = "",
         var isActive: Boolean = false
 ) : AbstractData<ParticleData, Immutable>() {
 
-    val idValue: Value<String>
+    private val idValue: Value<String>
         get() = Sponge.getRegistry().valueFactory.createValue(PARTICLE_ID, id)
 
-    val activeValue: Value<Boolean>
+    private val activeValue: Value<Boolean>
         get() = Sponge.getRegistry().valueFactory.createValue(ACTIVE, isActive)
 
     init {
@@ -33,13 +33,13 @@ class ParticleData internal constructor(
     }
 
     override fun registerGettersAndSetters() {
-        registerFieldGetter(PARTICLE_ID, { id })
-        registerFieldSetter(PARTICLE_ID, { id = it })
-        registerKeyValue(PARTICLE_ID, { idValue })
+        registerFieldGetter(PARTICLE_ID) { id }
+        registerFieldSetter(PARTICLE_ID) { id = it }
+        registerKeyValue(PARTICLE_ID) { idValue }
 
-        registerFieldGetter(ACTIVE, { isActive })
-        registerFieldSetter(ACTIVE, { isActive = it })
-        registerKeyValue(ACTIVE, { activeValue })
+        registerFieldGetter(ACTIVE) { isActive }
+        registerFieldSetter(ACTIVE) { isActive = it }
+        registerKeyValue(ACTIVE) { activeValue }
     }
 
     override fun fill(dataHolder: DataHolder, overlap: MergeFunction): Optional<ParticleData> {
@@ -56,7 +56,7 @@ class ParticleData internal constructor(
     private fun from(container: DataView): Optional<ParticleData> {
         container.getString(PARTICLE_ID.query).ifPresent { id = it }
         container.getBoolean(ACTIVE.query).ifPresent { isActive = it }
-        return toOptional()
+        return Optional.ofNullable(this)
     }
 
     override fun copy() = ParticleData(id, isActive)
@@ -70,8 +70,8 @@ class ParticleData internal constructor(
             .set(ACTIVE.query, isActive)
 
     class Immutable(
-            val id: String,
-            val isActive: Boolean
+        private val id: String,
+        private val isActive: Boolean
     ) : AbstractImmutableData<Immutable, ParticleData>() {
 
         init {
@@ -79,15 +79,15 @@ class ParticleData internal constructor(
         }
 
         override fun registerGetters() {
-            registerFieldGetter(PARTICLE_ID, { id })
-            registerKeyValue(PARTICLE_ID, {
+            registerFieldGetter(PARTICLE_ID) { id }
+            registerKeyValue(PARTICLE_ID) {
                 Sponge.getRegistry().valueFactory.createValue(PARTICLE_ID, id).asImmutable()
-            })
+            }
 
-            registerFieldGetter(ACTIVE, { isActive })
-            registerKeyValue(ACTIVE, {
+            registerFieldGetter(ACTIVE) { isActive }
+            registerKeyValue(ACTIVE) {
                 Sponge.getRegistry().valueFactory.createValue(ACTIVE, isActive).asImmutable()
-            })
+            }
         }
 
         override fun asMutable() = ParticleData(id, isActive)

@@ -8,17 +8,14 @@ import de.randombyte.entityparticles.commands.NewParticleConfigCommand
 import de.randombyte.entityparticles.commands.SetParticleCommand
 import de.randombyte.entityparticles.commands.SetParticleCommand.Companion.ENTITY_UUID_ARG
 import de.randombyte.entityparticles.commands.SetParticleCommand.Companion.WORLD_UUID_ARG
+import de.randombyte.entityparticles.config.Config
+import de.randombyte.entityparticles.config.ConfigManager
 import de.randombyte.entityparticles.data.EntityParticlesKeys
 import de.randombyte.entityparticles.data.EntityParticlesKeys.IS_REMOVER
 import de.randombyte.entityparticles.data.EntityParticlesKeys.PARTICLE_ID
 import de.randombyte.entityparticles.data.ParticleData
 import de.randombyte.entityparticles.data.RemoverItemData
 import de.randombyte.entityparticles.data.particleId
-import de.randombyte.kosp.config.ConfigManager
-import de.randombyte.kosp.extensions.executeAsConsole
-import de.randombyte.kosp.extensions.orNull
-import de.randombyte.kosp.extensions.red
-import de.randombyte.kosp.extensions.toText
 import ninja.leaping.configurate.commented.CommentedConfigurationNode
 import ninja.leaping.configurate.loader.ConfigurationLoader
 import org.slf4j.Logger
@@ -50,6 +47,8 @@ import org.spongepowered.api.item.inventory.ItemStack
 import org.spongepowered.api.plugin.Dependency
 import org.spongepowered.api.plugin.Plugin
 import org.spongepowered.api.scheduler.Task
+import org.spongepowered.api.text.Text
+import org.spongepowered.api.text.serializer.TextSerializers
 import org.spongepowered.api.util.Color
 import java.util.*
 
@@ -169,20 +168,20 @@ class EntityParticles @Inject constructor(
     @Listener
     fun onRightClickEntity(event: InteractEntityEvent.Secondary.MainHand, @First player: Player, @Getter("getTargetEntity") targetEntity: Entity) {
         if (targetEntity.type in config.blockedEntities) return
-        val itemInHand = player.getItemInHand(HandTypes.MAIN_HAND).orNull() ?: return
+        val itemInHand = player.getItemInHand(HandTypes.MAIN_HAND).orElse(null) ?: return
 
-        val particleId = itemInHand.get(PARTICLE_ID).orNull()
+        val particleId = itemInHand.get(PARTICLE_ID).orElse(null)
         val isRemover = itemInHand.get(IS_REMOVER).orElse(false)
 
         when {
             particleId != null -> {
                 player.setItemInHand(HandTypes.MAIN_HAND, itemInHand.setAmount(itemInHand.quantity - 1))
-                ("entityParticles set ${targetEntity.location.extent.uniqueId} ${targetEntity.uniqueId} $particleId").executeAsConsole()
+                Sponge.getCommandManager().process(Sponge.getServer().console, "entityParticles set ${targetEntity.location.extent.uniqueId} ${targetEntity.uniqueId} $particleId")
             }
             isRemover -> {
                 if (targetEntity.particleId == null) return
                 player.setItemInHand(HandTypes.MAIN_HAND, itemInHand.setAmount(itemInHand.quantity - 1))
-                ("entityParticles set ${targetEntity.location.extent.uniqueId} ${targetEntity.uniqueId} nothing").executeAsConsole()
+                Sponge.getCommandManager().process(Sponge.getServer().console, "entityParticles set ${targetEntity.location.extent.uniqueId} ${targetEntity.uniqueId} nothing")
             }
             else -> return // nothing, no EntityParticle item, prevent cancelling the event
         }
@@ -199,37 +198,35 @@ class EntityParticles @Inject constructor(
     fun onUseItemEvent(event: UseItemStackEvent.Start, @First player: Player) = onUseItem(event, player)
 
     private fun onUseItem(event: Cancellable, player: Player) {
-        val item = player.getItemInHand(HandTypes.MAIN_HAND).orNull() ?: return
+        val item = player.getItemInHand(HandTypes.MAIN_HAND).orElse(null) ?: return
         if (item.get(PARTICLE_ID).isPresent || item.get(IS_REMOVER).isPresent) {
             event.isCancelled = true
-            player.sendMessage("You can't use a ParticleItem!".red())
+            player.sendMessage(TextSerializers.FORMATTING_CODE.deserialize("&cYou can't use a ParticleItem!"))
         }
     }
 
     private fun registerCommands() {
         Sponge.getCommandManager().getOwnedBy(this).forEach { Sponge.getCommandManager().removeMapping(it) }
-
-        val particleIdChoices = config.particles.keys.map { it to it }.toMap()
-
+        val particleIdChoices = config.particles.keys.associateWith { it }
         Sponge.getCommandManager().register(this, CommandSpec.builder()
                 .child(CommandSpec.builder()
                         .permission("$ROOT_PERMISSION.give")
                         .arguments(
-                                playerOrSource(PLAYER_ARG.toText()),
-                                choices(PARTICLE_ID_ARG.toText(), particleIdChoices))
+                                playerOrSource(Text.of(PLAYER_ARG)),
+                                choices(Text.of(PARTICLE_ID_ARG), particleIdChoices))
                         .executor(GiveParticleItemCommand(getParticle = { id -> config.particles[id] }))
                         .build(), "give")
                 .child(CommandSpec.builder()
                         .permission("$ROOT_PERMISSION.set")
                         .arguments(
-                                string(WORLD_UUID_ARG.toText()),
-                                string(ENTITY_UUID_ARG.toText()),
-                                choices(PARTICLE_ID_ARG.toText(), particleIdChoices.plus("nothing" to "nothing")))
+                                string(Text.of(WORLD_UUID_ARG)),
+                                string(Text.of(ENTITY_UUID_ARG)),
+                                choices(Text.of(PARTICLE_ID_ARG), particleIdChoices.plus("nothing" to "nothing")))
                         .executor(SetParticleCommand(getParticleConfig = { id -> config.particles[id] }))
                         .build(), "set")
                 .child(CommandSpec.builder()
                         .permission("$ROOT_PERMISSION.new-config")
-                        .arguments(string(PARTICLE_ID_ARG.toText()))
+                        .arguments(string(Text.of(PARTICLE_ID_ARG)))
                         .executor(NewParticleConfigCommand(
                                 addNewConfig = { id, particle ->
                                     config = config.copy(particles = config.particles + (id to particle))
@@ -241,7 +238,7 @@ class EntityParticles @Inject constructor(
                 .child(CommandSpec.builder()
                         .child(CommandSpec.builder()
                                 .permission("$ROOT_PERMISSION.remover-item.give")
-                                .arguments(playerOrSource(PLAYER_ARG.toText()))
+                                .arguments(playerOrSource(Text.of(PLAYER_ARG)))
                                 .executor(GiveRemoverItemCommand(getRemoverItem = { config.removerItem.createItemStack() }))
                                 .build(), "give")
                         .build(), "removeritem")
@@ -259,7 +256,7 @@ class EntityParticles @Inject constructor(
                     Sponge.getServer().worlds.forEach worldLoop@ { world ->
                         (trackedEntities[world.uniqueId] ?: return@worldLoop)
                                 .mapNotNull { (uuid, id) ->
-                                    val entity = world.getEntity(uuid).orNull()
+                                    val entity = world.getEntity(uuid).orElse(null)
                                             ?: return@mapNotNull null
                                     entity to id
                                 }

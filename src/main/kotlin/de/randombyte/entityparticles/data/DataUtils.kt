@@ -3,7 +3,6 @@ package de.randombyte.entityparticles.data
 import com.pixelmonmod.pixelmon.entities.pixelmon.Entity1Base
 import de.randombyte.entityparticles.EntityParticles.Companion.PIXELMON_ID
 import de.randombyte.entityparticles.EntityParticles.Companion.PIXELMON_PARTICLE_TAG_KEY
-import de.randombyte.kosp.extensions.orNull
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraftforge.common.util.Constants
 import org.spongepowered.api.Sponge
@@ -26,7 +25,7 @@ var Entity.particleId: String?
                 persistentData.getString(PIXELMON_PARTICLE_TAG_KEY)
             }
         } else {
-            this.get(EntityParticlesKeys.PARTICLE_ID).orNull()
+            this.get(EntityParticlesKeys.PARTICLE_ID).orElse(null)
         }
     }
     set(id) {

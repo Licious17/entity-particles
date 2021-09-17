@@ -2,7 +2,6 @@ package de.randombyte.entityparticles.data
 
 import de.randombyte.entityparticles.data.EntityParticlesKeys.IS_REMOVER
 import de.randombyte.entityparticles.data.RemoverItemData.Immutable
-import de.randombyte.kosp.extensions.toOptional
 import org.spongepowered.api.Sponge
 import org.spongepowered.api.data.DataContainer
 import org.spongepowered.api.data.DataHolder
@@ -18,7 +17,7 @@ import java.util.*
 
 class RemoverItemData internal constructor(var isRemover: Boolean = false) : AbstractData<RemoverItemData, Immutable>() {
 
-    val isRemoverValue: Value<Boolean>
+    private val isRemoverValue: Value<Boolean>
         get() = Sponge.getRegistry().valueFactory.createValue(IS_REMOVER, isRemover)
 
     init {
@@ -26,9 +25,9 @@ class RemoverItemData internal constructor(var isRemover: Boolean = false) : Abs
     }
 
     override fun registerGettersAndSetters() {
-        registerFieldGetter(IS_REMOVER, { isRemover })
-        registerFieldSetter(IS_REMOVER, { isRemover = it })
-        registerKeyValue(IS_REMOVER, { isRemoverValue })
+        registerFieldGetter(IS_REMOVER) { isRemover }
+        registerFieldSetter(IS_REMOVER) { isRemover = it }
+        registerKeyValue(IS_REMOVER) { isRemoverValue }
     }
 
     override fun fill(dataHolder: DataHolder, overlap: MergeFunction): Optional<RemoverItemData> {
@@ -43,7 +42,7 @@ class RemoverItemData internal constructor(var isRemover: Boolean = false) : Abs
 
     private fun from(container: DataView): Optional<RemoverItemData> {
         container.getBoolean(IS_REMOVER.query).ifPresent { isRemover = it }
-        return toOptional()
+        return Optional.ofNullable(this)
     }
 
     override fun copy() = RemoverItemData(isRemover)
@@ -62,10 +61,8 @@ class RemoverItemData internal constructor(var isRemover: Boolean = false) : Abs
         }
 
         override fun registerGetters() {
-            registerFieldGetter(IS_REMOVER, { isRemover })
-            registerKeyValue(IS_REMOVER, {
-                Sponge.getRegistry().valueFactory.createValue(IS_REMOVER, isRemover).asImmutable()
-            })
+            registerFieldGetter(IS_REMOVER) { isRemover }
+            registerKeyValue(IS_REMOVER) { Sponge.getRegistry().valueFactory.createValue(IS_REMOVER, isRemover).asImmutable() }
         }
 
         override fun asMutable() = RemoverItemData(isRemover)
