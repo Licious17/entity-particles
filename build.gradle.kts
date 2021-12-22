@@ -28,6 +28,7 @@ plugins {
     kotlin("jvm") version "1.5.30"
     id("net.kyori.blossom") version "1.3.0"
     id("org.spongepowered.gradle.plugin") version "2.0.0"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 
 apply(plugin = "net.minecraftforge.gradle")
